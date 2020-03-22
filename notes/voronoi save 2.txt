@@ -1,0 +1,369 @@
+//*for convex, in voronoimesh maintain a convex which just needs a function that calculates a new convex when one point is added
+//then if a point is outside convex just find 1 or 2 intersections within that region, add new edges and references and your done
+VoronoiMesh VoronoiIncremental(Polygon& pointset)
+{
+	VoronoiMesh vmesh;
+	if (pointset.points.size() < 3)
+		return vmesh;
+	Point p0, p1, p2;
+	p0 = pointset.points[0];
+	p1 = pointset.points[1];
+	p2 = pointset.points[2];
+	if (Leftof(p0, p1, p2) > 0)
+	{
+		cout << "switched!" << endl;
+		p0 = pointset.points[0];
+		p1 = pointset.points[2];
+		p2 = pointset.points[1];
+	}
+	/*create vmesh with first 3 points*/
+	Point b01, f01, b02, f02, b12, f12;
+	/*first bisector*/
+	b01.x = (p0.x + p1.x) / 2.0f;
+	b01.y = (p0.y + p1.y) / 2.0f;
+	float ydiff = p0.y - p1.y;
+	float xdiff = p0.x - p1.x;
+	glm::vec2 r = glm::normalize(glm::vec2(1, (-xdiff / ydiff)));//direction doestn matter just finding intersection
+	f01.x = b01.x + r.x;
+	f01.y = b01.y + r.y;
+	/*2nd bisector*/
+	b02.x = (p0.x + p2.x) / 2.0f;
+	b02.y = (p0.y + p2.y) / 2.0f;
+	ydiff = p0.y - p2.y;
+	xdiff = p0.x - p2.x;
+	r = glm::normalize(glm::vec2(1, (-xdiff / ydiff)));
+	f02.x = b02.x + r.x;
+	f02.y = b02.y + r.y;
+	/*bisector 3*/
+	b12.x = (p1.x + p2.x) / 2.0f;
+	b12.y = (p1.y + p2.y) / 2.0f;
+	ydiff = p1.y - p2.y;
+	xdiff = p1.x - p2.x;
+	r = glm::normalize(glm::vec2(1, (-xdiff / ydiff)));
+	f12.x = b12.x + r.x;
+	f12.y = b12.y + r.y;
+	/*intersection point*/
+	Point p = LineIntersectionPoint(b01, f01, b02, f02);
+	/*edges*/
+	float value = 500000;
+	Point dir;
+	glm::vec2 tmp(b01.x - p.x, b01.y - p.y); tmp = glm::normalize(tmp); dir.x = tmp.x; dir.y = tmp.y;
+	Point p01 = pointadd(p, pointmultiplyconstant(dir, value));
+	if (Leftofvalue(p0, p1, p01) < 0)
+	{
+		tmp.x = p.x - b01.x; tmp.y = p.y - b01.y; tmp = glm::normalize(tmp); dir.x = tmp.x; dir.y = tmp.y;
+		p01 = pointadd(p, pointmultiplyconstant(dir, value));
+	}
+	glm::vec2 tmp2(b02.x - p.x, b02.y - p.y); tmp2 = glm::normalize(tmp2); dir.x = tmp2.x; dir.y = tmp2.y;
+	Point p02 = pointadd(p, pointmultiplyconstant(dir, value));
+	if (Leftofvalue(p2, p0, p02) < 0)
+	{
+		tmp2.x = p.x - b02.x; tmp2.y = p.y - b02.y; tmp2 = glm::normalize(tmp2); dir.x = tmp2.x; dir.y = tmp2.y;
+		p02 = pointadd(p, pointmultiplyconstant(dir, value));
+	}
+	glm::vec2 tmp3(b12.x - p.x, b12.y - p.y); tmp3 = glm::normalize(tmp3); dir.x = tmp3.x; dir.y = tmp3.y;
+	Point p12 = pointadd(p, pointmultiplyconstant(dir, value));
+	if (Leftofvalue(p1, p2, p12) < 0)
+	{
+		tmp3.x = p.x - b12.x; tmp3.y = p.y - b12.y; tmp3 = glm::normalize(tmp3); dir.x = tmp3.x; dir.y = tmp3.y;
+		p12 = pointadd(p, pointmultiplyconstant(dir, value));
+	}
+	vmesh.Addvpoints(p.x, p.y);
+	vmesh.Addvpoints(p01.x, p01.y);
+	vmesh.Addvpoints(p02.x, p02.y);
+	vmesh.Addvpoints(p12.x, p12.y);
+	vmesh.Addvedge(0, 1, 0,1);
+	vmesh.Addvedge(0, 2, 0, 2);
+	vmesh.Addvedge(0, 3, 1, 2);
+	vmesh.Addsite(p0); vmesh.SiteAddEdge(0, 0); vmesh.SiteAddEdge(0, 1);
+	vmesh.Addsite(p1); vmesh.SiteAddEdge(1, 0); vmesh.SiteAddEdge(1, 2);
+	vmesh.Addsite(p2); vmesh.SiteAddEdge(2, 1); vmesh.SiteAddEdge(2, 2);
+	vmesh.PrintInfo();
+	/*initialize convex hull*/
+	vmesh.convexhull.points.push_back(p0);
+	vmesh.convexhull.points.push_back(p1);
+	vmesh.convexhull.points.push_back(p2);
+	bool outsideconvex = false;
+	/*incremental algorithm now*/
+	for (int i = 3; i < pointset.points.size(); i++)
+	{
+		outsideconvex = false;
+		if (!IsPointInHull(vmesh.convexhull, pointset.points[i]))
+		{
+			vmesh.convexhull.points.push_back(pointset.points[i]);
+			vmesh.convexhull = ConvexHullGrahamScan(vmesh.convexhull);
+			outsideconvex = true;
+		}
+		cout << "new increment" << endl;
+		//figure out what site point is in
+		int siteindex = vmesh.ClosestSite(pointset.points[i]);
+		int originalsiteindex = siteindex;
+		vector<int> oppositeneighbors;
+		vector<int> bisectorneighbors;
+		vector<int> pointindexdelete;
+		vector<int> edgesaves;
+		set<int> pointindexdeleteset;
+		int vpointstartingindex = vmesh.vpoints.size();
+		bool leave = false;
+		while (!leave)
+		{
+			cout << "site index: " << siteindex << endl;
+			//create the perpendicular bisector between point and site
+			Point bisector;
+			Point perpendicular;
+			bisector.x = (pointset.points[i].x + vmesh.sites[siteindex].pos.x) / 2.0f;
+			bisector.y = (pointset.points[i].y + vmesh.sites[siteindex].pos.y) / 2.0f;
+			float ydiff = pointset.points[i].y - vmesh.sites[siteindex].pos.y;
+			float xdiff = pointset.points[i].x - vmesh.sites[siteindex].pos.x;
+			glm::vec2 r;
+			if (ydiff == 0)
+			{
+				r = glm::normalize(glm::vec2(0,4));//direction doestn matter just finding intersection
+			}
+			else
+			{
+				r = glm::normalize(glm::vec2(4, 4 * (-xdiff / ydiff)));//direction doestn matter just finding intersection
+			}
+			perpendicular.x = bisector.x + r.x;
+			perpendicular.y = bisector.y + r.y;
+			Point intersection;
+			int intersectioncount = 0;
+			vector<Point> collisions;
+			vector<int> collisionedges;
+			for (int j = 0; j < vmesh.sites[siteindex].edgeindices.size(); j++)
+			{
+				/*get intersection point*/
+				intersection = LineIntersectionPoint(bisector, perpendicular, vmesh.vpoints[vmesh.vedges[vmesh.sites[siteindex].edgeindices[j]].p1index],
+					vmesh.vpoints[vmesh.vedges[vmesh.sites[siteindex].edgeindices[j]].p2index]);
+				cout << intersection.x << " " << intersection.y << endl;
+				/*is intersection on segment*/
+				if (IsPointOnSegment(vmesh.vpoints[vmesh.vedges[vmesh.sites[siteindex].edgeindices[j]].p1index], vmesh.vpoints[vmesh.vedges[vmesh.sites[siteindex].edgeindices[j]].p2index],
+					intersection))
+				{
+					collisions.push_back(intersection);
+					collisionedges.push_back(j);
+					intersectioncount++;
+				}
+			}
+			if (intersectioncount != 2 && outsideconvex == false)
+			{
+				cout << "ERROR " << intersectioncount << " intersections!" << endl;
+				return vmesh;
+			}
+			else if (outsideconvex == true)
+			{
+				leave = true;
+				int counter = 0;
+				vmesh.Addsite(pointset.points[i]);
+				for (int x = 0; x < collisions.size(); x++)
+				{
+					/*find neighbor to edge*/
+					int othersiteindex;
+					if (vmesh.vedges[vmesh.sites[siteindex].edgeindices[collisionedges[counter]]].s1index == siteindex)
+						othersiteindex = vmesh.vedges[vmesh.sites[siteindex].edgeindices[collisionedges[counter]]].s2index;
+					else if (vmesh.vedges[vmesh.sites[siteindex].edgeindices[collisionedges[counter]]].s2index == siteindex)
+						othersiteindex = vmesh.vedges[vmesh.sites[siteindex].edgeindices[collisionedges[counter]]].s1index;
+					else
+						cout << "ERROR sites doesn't contain correct one outside convex" << endl;
+					/*add point*/
+					vmesh.Addvpoints(collisions[x].x, collisions[x].y);
+					/*add edges*/
+					if (pointmagnitude(pointsubract(pointset.points[i], vmesh.vpoints[vmesh.vedges[vmesh.sites[siteindex].edgeindices[collisionedges[counter]]].p1index]))
+						< pointmagnitude(pointsubract(vmesh.sites[siteindex].pos, vmesh.vpoints[vmesh.vedges[vmesh.sites[siteindex].edgeindices[collisionedges[counter]]].p1index])))
+					{
+						vmesh.SiteAddEdge(othersiteindex, vmesh.vedges.size());
+						vmesh.SiteAddEdge(othersiteindex, vmesh.vedges.size() + 1);
+						vmesh.SiteAddEdge(siteindex, vmesh.vedges.size() + 1);
+						vmesh.SiteAddEdge(vmesh.sites.size() - 1, vmesh.vedges.size());
+						vmesh.Addvedge(vmesh.vedges[vmesh.sites[siteindex].edgeindices[collisionedges[counter]]].p1index, vmesh.vpoints.size() - 1, vmesh.sites.size() - 1, othersiteindex);
+						vmesh.Addvedge(vmesh.vedges[vmesh.sites[siteindex].edgeindices[collisionedges[counter]]].p2index, vmesh.vpoints.size() - 1, siteindex, othersiteindex);
+					}
+					else
+					{
+						vmesh.SiteAddEdge(othersiteindex, vmesh.vedges.size());
+						vmesh.SiteAddEdge(othersiteindex, vmesh.vedges.size() + 1);
+						vmesh.SiteAddEdge(siteindex, vmesh.vedges.size() + 1);
+						vmesh.SiteAddEdge(vmesh.sites.size() - 1, vmesh.vedges.size());
+						vmesh.Addvedge(vmesh.vedges[vmesh.sites[siteindex].edgeindices[collisionedges[counter]]].p2index, vmesh.vpoints.size() - 1, vmesh.sites.size() - 1, othersiteindex);
+						vmesh.Addvedge(vmesh.vedges[vmesh.sites[siteindex].edgeindices[collisionedges[counter]]].p1index, vmesh.vpoints.size() - 1, siteindex, othersiteindex);
+					}
+					counter++;
+				}
+				if (intersectioncount == 2)
+				{
+					/*remove edge*/
+					vmesh.Removevedge(vmesh.sites[siteindex].edgeindices[collisionedges[0]]);//**look at function
+					vmesh.Removevedge(vmesh.sites[siteindex].edgeindices[collisionedges[1]-1]);
+					/*connect edge and add reference*/
+					vmesh.SiteAddEdge(vmesh.sites.size() - 1, vmesh.vedges.size());
+					vmesh.SiteAddEdge(siteindex, vmesh.vedges.size());
+					vmesh.Addvedge(vmesh.vpoints.size() - 2, vmesh.vpoints.size() - 1, siteindex, vmesh.sites.size() - 1);
+				}
+				else if (intersectioncount == 1)
+				{
+					/*remove edge*/
+					vmesh.Removevedge(vmesh.sites[siteindex].edgeindices[collisionedges[0]]);
+					/*get direction of bisector with correct orientation and add far away point*/
+					value = 500000;
+					Point farpoint1(collisions[0].x + value * r.x, collisions[0].y + value * r.y);
+					Point farpoint2(collisions[0].x - value * r.x, collisions[0].y - value * r.y);
+					float v1 = Leftofvalue(vmesh.sites[siteindex].pos, vmesh.sites[vmesh.sites.size() - 1].pos, farpoint1);
+					float v2 = Leftofvalue(vmesh.sites[siteindex].pos, vmesh.sites[vmesh.sites.size() - 1].pos, collisions[0]);
+					if ((v1 > 0 && v2 > 0) || (v1 < 0 && v2 < 0))//both same switch directions
+					{
+						//use farpoint 2
+						vmesh.Addvpoints(farpoint2.x, farpoint2.y);
+						vmesh.SiteAddEdge(vmesh.sites.size() - 1, vmesh.vedges.size());
+						vmesh.SiteAddEdge(siteindex, vmesh.vedges.size());
+						vmesh.Addvedge(vmesh.vpoints.size() - 1, vmesh.vpoints.size() - 2, siteindex, vmesh.sites.size() - 1);
+					}
+					else
+					{
+						vmesh.Addvpoints(farpoint1.x, farpoint1.y);
+						vmesh.SiteAddEdge(vmesh.sites.size() - 1, vmesh.vedges.size());
+						vmesh.SiteAddEdge(siteindex, vmesh.vedges.size());
+						vmesh.Addvedge(vmesh.vpoints.size() - 1, vmesh.vpoints.size() - 2, siteindex, vmesh.sites.size() - 1);
+					}
+				}
+				else
+				{
+					cout << "ERROR intersection count outside convex" << endl;
+				}
+			}
+			else
+			{
+				//see which one is ccw
+				int edgecollider;
+				if (Leftofvalue(pointset.points[i], collisions[0], collisions[1]) < 0)
+				{
+					intersection = collisions[0];
+					edgecollider = collisionedges[0];
+				}
+				else
+				{
+					intersection = collisions[1];
+					edgecollider = collisionedges[1];
+				}
+				//save edge
+				//get next neighbor
+				/*add point and the 2 edges and get its neighbors based on what point is closer to the new point*/
+				int othersiteindex;
+				if (vmesh.vedges[vmesh.sites[siteindex].edgeindices[edgecollider]].s1index == siteindex)
+					othersiteindex = vmesh.vedges[vmesh.sites[siteindex].edgeindices[edgecollider]].s2index;
+				else if (vmesh.vedges[vmesh.sites[siteindex].edgeindices[edgecollider]].s2index == siteindex)
+					othersiteindex = vmesh.vedges[vmesh.sites[siteindex].edgeindices[edgecollider]].s1index;
+				else
+					cout << "ERROR sites doesn't contain correct one" << endl;
+
+				vmesh.Addvpoints(intersection.x, intersection.y);
+				edgesaves.push_back(vmesh.sites[siteindex].edgeindices[edgecollider]);
+				bisectorneighbors.push_back(siteindex);
+				oppositeneighbors.push_back(othersiteindex);
+				siteindex = othersiteindex;
+			}
+			if (siteindex == originalsiteindex)
+			{
+				leave = true;
+			}
+		}
+		if (outsideconvex == true)
+		{
+
+		}
+		else
+		{
+			int counter = 0;
+			/*connect all the new points we added by adding edges*/
+			vmesh.Addsite(pointset.points[i]);
+			//Polygon convexhull;
+			for (int z = vpointstartingindex; z < vmesh.vpoints.size(); z++)
+			{
+				if (z + 1 == vmesh.vpoints.size())
+				{
+					vmesh.SiteAddEdge(oppositeneighbors[counter], vmesh.vedges.size());
+					vmesh.SiteAddEdge(vmesh.sites.size() - 1, vmesh.vedges.size());
+					vmesh.Addvedge(z, vpointstartingindex, vmesh.sites.size() - 1, oppositeneighbors[counter]);
+					counter++;
+				}
+				else
+				{
+					vmesh.SiteAddEdge(oppositeneighbors[counter], vmesh.vedges.size());
+					vmesh.SiteAddEdge(vmesh.sites.size() - 1, vmesh.vedges.size());
+					vmesh.Addvedge(z, z + 1, vmesh.sites.size() - 1, oppositeneighbors[counter]);
+					counter++;
+				}
+				//convexhull.points.push_back(vmesh.vpoints[z]);
+			}
+
+			/*add all the new double edges from new points*/
+			counter = 0;
+			for (int z = vpointstartingindex; z < vmesh.vpoints.size(); z++)
+			{
+				//if its inside the convexhull
+				//IsPointInHull(convexhull, vmesh.vpoints[vmesh.vedges[edgesaves[counter]].p1index])
+				//IsPointInHull(convexhull, vmesh.vpoints[vmesh.vedges[edgesaves[counter]].p2index])
+				if (pointmagnitude(pointsubract(pointset.points[i], vmesh.vpoints[vmesh.vedges[edgesaves[counter]].p1index]))
+					< pointmagnitude(pointsubract(vmesh.sites[bisectorneighbors[counter]].pos, vmesh.vpoints[vmesh.vedges[edgesaves[counter]].p1index])))
+				{
+					//p1index is closest to new site
+					vmesh.SiteAddEdge(oppositeneighbors[counter], vmesh.vedges.size());
+					vmesh.SiteAddEdge(oppositeneighbors[counter], vmesh.vedges.size() + 1);
+					vmesh.SiteAddEdge(bisectorneighbors[counter], vmesh.vedges.size() + 1);
+					vmesh.Addvedge(vmesh.vedges[edgesaves[counter]].p1index, z, vmesh.sites.size() - 1, oppositeneighbors[counter]);
+					vmesh.Addvedge(vmesh.vedges[edgesaves[counter]].p2index, z, oppositeneighbors[counter], bisectorneighbors[counter]);
+					//pointindexdelete.push_back(vmesh.vedges[vmesh.sites[siteindex].edgeindices[j]].p1index);
+					pointindexdeleteset.insert(vmesh.vedges[edgesaves[counter]].p1index);
+				}
+				else
+				{
+					//p1index is farthest to new site
+					vmesh.SiteAddEdge(oppositeneighbors[counter], vmesh.vedges.size());
+					vmesh.SiteAddEdge(oppositeneighbors[counter], vmesh.vedges.size() + 1);
+					vmesh.SiteAddEdge(bisectorneighbors[counter], vmesh.vedges.size() + 1);
+					vmesh.Addvedge(vmesh.vedges[edgesaves[counter]].p2index, z, vmesh.sites.size() - 1, oppositeneighbors[counter]);
+					vmesh.Addvedge(vmesh.vedges[edgesaves[counter]].p1index, z, oppositeneighbors[counter], bisectorneighbors[counter]);
+					//pointindexdelete.push_back(vmesh.vedges[vmesh.sites[siteindex].edgeindices[j]].p2index);
+					pointindexdeleteset.insert(vmesh.vedges[edgesaves[counter]].p2index);
+				}
+				//else
+				//{
+					/*vmesh.SiteAddEdge(oppositeneighbors[counter], vmesh.vedges.size());
+					vmesh.SiteAddEdge(oppositeneighbors[counter], vmesh.vedges.size() + 1);
+					vmesh.SiteAddEdge(bisectorneighbors[counter], vmesh.vedges.size() + 1);
+					vmesh.Addvedge(vmesh.vedges[edgesaves[counter]].p2index, z, oppositeneighbors[counter], bisectorneighbors[counter]);
+					vmesh.Addvedge(vmesh.vedges[edgesaves[counter]].p1index, z, oppositeneighbors[counter], bisectorneighbors[counter]);*/
+					//cout << "ERROR no points are inside region" << endl;
+				//}
+				counter++;
+			}
+			/*ERRORS when colliding with 3, it hits 2 edges that are joining and counts them as two
+			When it goes to infinity seems to not count it
+			*/
+
+			/*we made a set for unique points now copy in vector because we need mutable structure*/
+			pointindexdelete.clear();
+			std::set<int>::iterator it;
+			for (int z = 0; z < pointindexdeleteset.size(); z++)
+			{
+				it = pointindexdeleteset.begin(); std::advance(it, z);
+				pointindexdelete.push_back(*it);
+			}
+			/*delete all points that were closer to our new point*/
+			for (int z = 0; z < pointindexdelete.size(); z++)
+			{
+				vmesh.Removevpoints(pointindexdelete[z]);
+				for (int c = z + 1; c < pointindexdelete.size(); c++)
+				{
+					if (pointindexdelete[c] > pointindexdelete[z])
+					{
+						pointindexdelete[c]--;
+					}
+				}
+			}
+			//vmesh.PrintInfo();
+			cout << endl;
+		}
+	}
+	vmesh.CheckStatus();
+	return vmesh;
+}

@@ -1,0 +1,69 @@
+Implementing Fortunes Algorithm...
+
+inside site event
+outside site event
+leaf:(278,151)left: right: 
+
+inside site event
+outside site event
+internal:(189,164)(278,151)(index:0)left: internal:(278,151)(189,164)(index:0)right: leaf:(278,151)
+internal:(278,151)(189,164)(index:0)left: leaf:(278,151)right: leaf:(189,164)
+leaf:(278,151)left: right: 
+leaf:(278,151)left: right: 
+leaf:(189,164)left: right: 
+
+inside site event
+scaneliney: 166
+new event00!294.253 996.161 422.737
+outside site event
+internal:(189,164)(278,151)(index:0)left: internal:(278,151)(189,164)(index:0)right: internal:(407,166)(278,151)(index:1)
+internal:(278,151)(189,164)(index:0)left: leaf:(278,151)right: leaf:(189,164)
+internal:(407,166)(278,151)(index:1)left: internal:(278,151)(407,166)(index:1)right: leaf:(278,151)
+leaf:(278,151)left: right: 
+leaf:(189,164)left: right: 
+internal:(278,151)(407,166)(index:1)left: leaf:(278,151)right: leaf:(407,166)
+leaf:(278,151)left: right: 
+leaf:(278,151)left: right: 
+leaf:(407,166)left: right: 
+
+inside site event
+scaneliney: 321
+new event00!334.576 321.104 94.4605
+outside site event
+internal:(189,164)(278,151)(index:0)left: internal:(278,151)(189,164)(index:0)right: internal:(407,166)(278,151)(index:1)
+internal:(278,151)(189,164)(index:0)left: leaf:(278,151)right: leaf:(189,164)
+internal:(407,166)(278,151)(index:1)left: internal:(278,151)(407,166)(index:1)right: leaf:(278,151)
+leaf:(278,151)left: right: 
+leaf:(189,164)left: right: 
+internal:(278,151)(407,166)(index:1)left: leaf:(278,151)right: internal:(339,321)(407,166)(index:2)
+leaf:(278,151)left: right: 
+leaf:(278,151)left: right: 
+internal:(339,321)(407,166)(index:2)left: internal:(407,166)(339,321)(index:2)right: leaf:(407,166)
+internal:(407,166)(339,321)(index:2)left: leaf:(407,166)right: leaf:(339,321)
+leaf:(407,166)left: right: 
+leaf:(407,166)left: right: 
+leaf:(339,321)left: right: 
+
+inside circle event
+circle event site: 334.576,226.643
+Deleted tripleLEFTDELETIONmade deletion339 321, 407 166
+scaneliney: 321.104
+new event11!248.13 368.427 110.765
+outside circle event
+internal:(189,164)(278,151)(index:0)left: internal:(278,151)(189,164)(index:0)right: internal:(407,166)(278,151)(index:1)
+internal:(278,151)(189,164)(index:0)left: leaf:(278,151)right: leaf:(189,164)
+internal:(407,166)(278,151)(index:1)left: internal:(278,151)(339,321)(index:3)right: leaf:(278,151)
+leaf:(278,151)left: right: 
+leaf:(189,164)left: right: 
+internal:(278,151)(339,321)(index:3)left: leaf:(278,151)right: internal:(339,321)(407,166)(index:2)
+leaf:(278,151)left: right: 
+leaf:(278,151)left: right: 
+internal:(339,321)(407,166)(index:2)left: leaf:(339,321)right: leaf:(407,166)
+leaf:(339,321)left: right: 
+leaf:(407,166)left: right: 
+
+inside circle event
+circle event site: 248.13,257.662
+Deleted tripleLEFTDELETIONmade deletion407 166, 278 151
+outside circle event
+N: 4 time: 677 microseconds

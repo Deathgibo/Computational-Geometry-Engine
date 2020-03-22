@@ -1,0 +1,23 @@
+e(p,q)- euclidean distance between p and q points
+dp(q) - gives the distance from any other point to q
+d(p) - outputs the closest points in the set of sites to p 
+Bpq - set of points of equal distance, bisector, between 2 sites p and q
+Rp - is a convex polygon, perhaps unbounded, containing p
+*(z) - maps (zx, zy) -> (zx, zy + d(z))
+
+theres this notion of C- and C+
+
+Cs is positive if
+
+get first one in a,b,c
+if a.x < intersection.x its good
+
+-notes-
+.make sure when we call Q->remove, we also set the pointer back to NULL
+. breaks at deletetripple right after is on RIGHTDELETe, LEFTDELETE, also addvertextoedge error edge has 2 points already
+. maybe have to make Q a direct pointer
+. check the internal node point to two of same things see if that happens and resolve
+
+site, radius
+siteevent
+leafz

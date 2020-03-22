@@ -1,0 +1,79 @@
+-insert-
+insert x into leaf a. replace [a] with       (x,a)
+			   	        (a,x)     [a]
+			 	      [a]   [x]
+-delete-
+1.) get leaf of x, find parent node
+2.) if grandparent node exsists with x make left grandparent left parent, or right grandparent right parent
+3.) delete leaf and parent node
+4.) attach other leaf of parent to grandparent
+
+-add and remove-
+. you insert new into 3 in 1,2,3,4,5 so 1,2,3 stays same held in 2, 3,4,5 stays same held in 4. 2,3,4 is gone held in 3 but 2,3,new is held in left 3 and new,3,4 is held in right 3. So 2 is happy, left 3 is happy, right 3 is happy, and 4 is happy. new is between same so its not a triplet
+. you delete 3 from 1,2,3,4,5. 1,2,3 is gone and you check for 1,2,4 which both have 2 as middle. 3,4,5 is unhappy switch with 2,4,5 which both have 4 in middle. remove 2,3,4.
+
+. for inserting new archs the only event getting deleting is the event that has the arch above new point. Then there could be 2 new events which are just lefter,left,new and new,right,righter.
+. for removing arch theres 2 that are getting delete lefter,left,deleted and deleted,right,righter. But those 2 that got deleted will have 2 new potential events lefter,left,right and left,right,righter.
+
+-add event-
+1.) add event referencing a leaf add it to queue
+2.) then that leaf also references that event
+
+-remove event-
+1.) search for event in queue with leaf, x, and delete
+2.) the leaf also removes its reference to that event
+
+-get left/right neighbor-
+this should be an easy algorithm to determine just getting left and right neighbor leaves
+
+-sweep line- balanced binary tree
+bool isleaf
+tuple (sl,sr)
+vedge* edge
+vec2 site
+event* event
+
+. leafs store arc and site to arc ordered by their lowest x, also stores a pointer to the event in Q where that arc will dissapear in the circle event. Nil if doesnt exist
+
+. nodes represents the intersections of the arcs in a ordered tuple (sitel,siter), also stores pointer to a half-edge in D the half edge is one of the two that the arc draws out
+
+	. so you find the arc right above the new site, by comparing x with new sites x and the intersection of the two sites in the internal node. Parabolas are calculated with site and line, then calcualte parobola intersection to find the intersection point and then its x
+. node binary comparison calculating breakpoint of two points in node and comparing x value with incoming x value
+. computer left and right neighbors of beachline arcs
+
+-event queue- balanced binary tree
+float yposition
+beachnode* arc
+
+. should just be a binary tree 
+. site events - happens when sweep line reaches a site, you find arc above it (because it makes vertical arc) then insert that into the new beach line
+. circle events - when 3 neighboring sites all intersect, the left and right arcs override the middle one and it dissapears	
+
+-voronoi mesh-
+mesh will hold vertex points
+will hold edges which just reference the vertex index
+
+*start and end point might be wierd so maybe just put it in non empty one i dont think direction matters
+. for circle event, you find the middle one, then its just like neighbor algorithm, you get the easy node and that will give you a reference to one edge, then you do the algorithm to get the other node and that will hold another reference.
+. function called updateneighboredge, which you insert a vertex address from the voronoi structures and add that to the two neighbor internal nodes
+. when you insert you will create a new edge and reference that in two new internal nodes as the endpoint
+. when you delete you will create new edge and reference that in top internal node and add the vertex as startpoint
+. for intsert and delete i will have to add code to make the references 
+
+. at sites just reference an edge between site x,y this is just for end we will look for all incomplete edges and bound them
+. at circle event you will give 2 edges end points and 1 edge a start point, a,b,c a,b and b,c will have endpoints a,c will have start point because b dissapears
+. at end look at all edges that don't have start and end and bound them
+. that is all you have a list of edges
+
+-site event- (insert, update)
+. get event x and find its arc its under 
+. insert it into the new arc
+. add to voronoi structure
+. delete old triples that involved that arc
+. check new triples
+
+-circle event- (delete, update)
+. delete the site in the middle
+. add to voronoi structure
+. then delete all triples associated with the two sides
+. add new triples
